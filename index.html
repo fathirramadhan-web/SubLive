@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17181c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>SubLive</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 Arial,sans-serif;background:#17181c;color:#e8e8ea;padding:16px 16px 40px}
+  main{max-width:860px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  .hint{color:#9aa0a6;font-size:13px;margin:0 0 16px}
+  section{background:#1f2127;border:1px solid #33363e;border-radius:10px;padding:14px;margin-bottom:14px}
+  h2{font-size:14px;margin:0 0 10px;color:#c7c9cf}
+  label{display:block;color:#9aa0a6;font-size:12px;margin:10px 0 4px}
+  select,input[type=file]{width:100%;background:#23252b;border:1px solid #3a3d45;color:#e8e8ea;border-radius:6px;padding:8px;font-size:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{background:#2b2e36;border:1px solid #3a3d45;color:#e8e8ea;border-radius:6px;padding:10px 16px;font-size:14px;cursor:pointer}
+  button.primary{background:#3b6ef5;border-color:#3b6ef5;color:#fff}
+  button.danger{background:#8a2b2b;border-color:#8a2b2b}
+  button:disabled{opacity:.45}
+  video{position:relative}
+  video:fullscreen{object-fit:contain;width:100vw;height:100vh;max-height:none}
+  video:fullscreen #cap{position:absolute;left:0;right:0;bottom:14vh;z-index:10}
+  #cap span{font-size:clamp(16px,4.2vw,26px)}
+  video{position:relative;width:100%;max-height:48vh;background:#000;border-radius:8px;margin-top:10px;display:none}
+  #status{font-size:13px;color:#9aa0a6;margin-top:10px;min-height:18px;white-space:pre-line}
+  #cap{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:none;justify-content:center;text-align:center;pointer-events:none;z-index:50;padding:0 12px}
+  #cap span{display:inline-block;max-width:94vw;background:rgba(0,0,0,.72);color:#fff;padding:.3em .7em;border-radius:6px;white-space:pre-line;font-size:clamp(16px,4.2vw,26px);line-height:1.3;text-shadow:0 1px 2px #000}
+  #transcript{max-height:220px;overflow:auto;font-size:13px;color:#c7c9cf;white-space:pre-wrap}
+  #transcript:empty::before{content:'Belum ada transkrip.';color:#6b6f78}
+</style>
+</head>
+<body>
+<main>
+  <h1>SubLive</h1>
+  <p class="hint">Subtitle otomatis, jalan di perangkat. Model diunduh sekali lalu tersimpan. Gratis, tanpa server.</p>
+
+  <section>
+    <h2>1. Model</h2>
+    <label>Bahasa</label>
+    <select id="lang">
+      <option value="">Deteksi otomatis</option>
+      <option value="indonesian">Indonesia</option>
+      <option value="english">Inggris</option>
+      <option value="japanese">Jepang</option>
+      <option value="korean">Korea</option>
+      <option value="chinese">Mandarin</option>
+      <option value="arabic">Arab</option>
+      <option value="spanish">Spanyol</option>
+    </select>
+    <label>Ukuran model</label>
+    <select id="model">
+      <option value="onnx-community/whisper-tiny">Tiny, ~40 MB, cepat (disarankan HP)</option>
+      <option value="onnx-community/whisper-base">Base, ~80 MB, lebih akurat</option>
+    </select>
+    <div class="row"><button id="loadModel" class="primary">Muat model</button></div>
+  </section>
+
+  <section>
+    <h2>2. Sumber suara</h2>
+    <label>File video / audio (bisa langsung tanpa model dulu untuk cek)</label>
+    <input id="file" type="file" accept="video/*,audio/*">
+    <video id="player" controls playsinline></video>
+    <div class="row">
+      <button id="startFile" class="primary" disabled>Subtitle dari file</button>
+      <button id="startTab" class="primary" disabled>Subtitle dari tab ini</button>
+      <button id="startMic" disabled>Subtitle dari mikrofon</button>
+      <button id="stop" class="danger" disabled>Stop</button>
+    </div>
+    <div id="status"></div>
+  </section>
+
+  <section>
+    <h2>Transkrip</h2>
+    <div id="transcript"></div>
+    <div class="row"><button id="export" disabled>Unduh .srt</button></div>
+  </section>
+
+  <div class="row"><button id="fs">Layar penuh</button></div>
+
+  <p class="hint">Mode "dari tab ini" menangkap suara video yang diputar di tab aktif (Chrome desktop: pilih tab saat diminta; Chrome Android versi terbaru: pilih Bagikan tab + Bagikan suara; iPhone: tak didukung, pakai file atau mikrofon). Video fullscreen situs lain tetap tak bisa ditempeli dari web (batas OS); pakai ekstensi desktop untuk overlay menempel.</p>
+</main>
+<div id="cap"><span id="capText"></span></div>
+<script src="app.js"></script>
+</body>
+</html>
