@@ -1,67 +1,98 @@
 # SubLive
 
-Subtitle otomatis untuk video, jalan langsung di browser. Tanpa API key, tanpa server, tanpa biaya. Audio tidak pernah diunggah.
+SubLive adalah aplikasi web progresif (PWA) untuk menghasilkan subtitle otomatis pada materi video. Seluruh proses pengenalan suara dilakukan langsung di perangkat pengguna melalui model Whisper yang dijalankan di dalam browser. Aplikasi tidak memerlukan kunci API, tidak memiliki backend, tidak mengenakan biaya, dan tidak mengunggah data audio ke pihak ketiga.
 
-## Fitur
+## Ikhtisar
 
-- Transkrip otomatis pakai Whisper (transformers.js) di perangkat sendiri
-- Tiga sumber suara:
-  - **File** — pilih video/audio dari perangkat, subtitle sinkron saat video diputar
-  - **Tab ini** — tangkap audio video yang sedang diputar di tab browser (tanpa mikrofon)
-  - Model bahasa: Indonesia, Inggris, Jepang, Korea, Mandarin, Arab, Spanyol, atau deteksi otomatis
-- Pilihan model: Tiny (~40 MB, cepat, disarankan HP) atau Base (~80 MB, lebih akurat)
-- WebGPU bila tersedia, otomatis fallback ke WASM
-- Layar penuh: video (mode file) atau halaman (mode tab)
-- Unduh hasil transkrip sebagai `.srt`
-- PWA — bisa di-install, kerja offline setelah model terunduh
+Saat pengguna memuat berkas video atau menangkap audio dari tab browser, SubLive mendekoding sinyal audio menjadi format yang dibutuhkan model: 16.000 sampel per detik, kanal mono. Audio kemudian dibagi menjadi segmen berdurasi delapan detik dan diproses oleh model pengenalan suara di dalam Web Worker. Hasilnya berupa potongan teks berikut cap waktu (timestamp) ditampilkan sebagai subtitle dan dapat diekspor ke berkas SubRip (`.srt`).
 
-## Pakai
+Arsitektur ini bersifat sepenuhnya sisi-klien. Akses jaringan hanya terjadi pada unduhan awal pustaka dan bobot model dari CDN publik. Setelah keduanya tersimpan dalam cache browser, aplikasi dapat berjalan tanpa koneksi internet.
 
-Buka https://fathirramadhan-web.github.io/SubLive/
+## Fitur Utama
 
-1. Pilih bahasa, klik **Muat model** (unduh pertama butuh internet, lalu tersimpan di cache browser)
-2. Pilih sumber:
-   - **File**: pilih video/audio, klik **Subtitle dari file**, lalu putar videonya
-   - **Tab ini**: klik **Subtitle dari tab ini**, saat diminta pilih tab yang diputar dan aktifkan "Bagikan suara"
-3. Subtitle muncul di bawah. Klik **Layar penuh** untuk fullscreen.
-4. Klik **Unduh .srt** untuk simpan transkrip.
+### Pengenalan suara di perangkat
 
-## Dukungan browser
+Transkripsi memakai model Whisper melalui pustaka transformers.js. Tidak ada data yang dikirim ke server eksternal. Bahasa yang didukung meliputi Indonesia, Inggris, Jepang, Korea, Mandarin, Arab, dan Spanyol, serta opsi deteksi otomatis.
 
-| Mode | Chrome/Edge desktop | Chrome Android | Safari iPhone |
+### Dua sumber audio
+
+- **Berkas (File).** Pengguna memilih berkas video atau audio dari perangkat. Subtitle tampil sinkron dengan posisi pemutaran karena setiap potongan teks memiliki cap waktu yang cocok dengan linimasa video.
+- **Tab browser (Tab ini).** Aplikasi menangkap audio dari tab yang sedang memutar video melalui `getDisplayMedia({ audio: true })`. Metode ini tidak memakai mikrofon; sinyal diambil langsung dari aliran audio tab. Pengguna diminta memilih tab yang dibagikan dan mengaktifkan "Bagikan suara".
+
+### Pilihan model
+
+| Model | Perkiraan ukuran | Karakteristik |
+|---|---|---|
+| Tiny | ±40 MB | Paling cepat; direkomendasikan untuk perangkat seluler |
+| Base | ±80 MB | Lebih akurat pada aksen dan kondisi bising; pemrosesan lebih lambat |
+
+Akselerasi perangkat keras digunakan bila browser menyediakan WebGPU. Bila tidak tersedia, aplikasi otomatis beralih ke backend WASM.
+
+### Layar penuh
+
+Tombol "Layar penuh" menyesuaikan sumber audio. Pada mode berkas, elemen video menjadi layar penuh dan subtitle ditempatkan di dalamnya. Pada mode tab, halaman aplikasi yang menjadi layar penuh, dengan subtitle tetap di bagian bawah.
+
+### Ekspor dan instalasi
+
+Transkrip dapat diunduh dalam format `.srt` yang kompatibel dengan mayoritas pemutar video. Sebagai PWA, aplikasi dapat dipasang ke layar utama dan beroperasi offline setelah unduhan awal selesai.
+
+## Petunjuk Penggunaan
+
+Alamat aplikasi: `https://fathirramadhan-web.github.io/SubLive/`
+
+1. Pilih bahasa pada bagian "Model", tekan "Muat model". Pada penggunaan pertama, aplikasi mengunduh pustaka dan bobot model dari CDN; proses ini memerlukan internet. Unduhan berikutnya dilayani dari cache browser.
+2. Setelah model siap, pilih sumber audio:
+   - **File**: pilih berkas video atau audio, tekan "Subtitle dari file", lalu putar berkas. Subtitle mengikuti linimasa.
+   - **Tab ini**: tekan "Subtitle dari tab ini". Pada dialog yang muncul, pilih tab yang memutar video dan aktifkan "Bagikan suara". Putar video; subtitle muncul sekitar delapan detik setelah dimulai, ditambah waktu komputasi.
+3. Gunakan "Layar penuh" bila diperlukan. Tekan tombol yang sama atau Escape untuk keluar.
+4. Tekan "Unduh .srt" untuk menyimpan transkrip.
+
+## Kompatibilitas Browser
+
+| Mode | Chrome/Edge Desktop | Chrome Android | Safari iPhone |
 |---|---|---|---|
-| File | Ya | Ya | Ya |
-| Tab ini | Ya | Ya (versi terbaru, aktifkan "Bagikan suara") | Tidak (batas API) |
-| Fullscreen | Ya | Ya | Ya (video) |
+| Berkas | Didukung | Didukung | Didukung |
+| Tab browser | Didukung | Didukung (versi terbaru; aktifkan "Bagikan suara") | Tidak didukung (keterbatasan API) |
+| Layar penuh | Didukung | Didukung | Didukung (video) |
 
-Mode tab memakai `getDisplayMedia({audio})`. Video fullscreen di situs lain (Netflix, YouTube app) tak bisa ditempeli overlay dari web — itu batas OS. Untuk itu pakai ekstensi desktop `../` (SubOverlay) di folder induk.
+Mode "Tab ini" bergantung pada `getDisplayMedia` dengan dukungan audio. Pada Safari iPhone, antarmuka tersebut tidak menyediakan penangkapan audio tab, sehingga disarankan memakai mode berkas.
 
-## Jalan lokal
+Aplikasi web tidak dapat menempatkan overlay di atas video yang diputar dalam aplikasi lain atau dalam pemutar layar penuh milik situs pihak ketiga, seperti Netflix atau aplikasi YouTube. Ini keterbatasan pada tingkat sistem operasi dan browser, bukan keterbatasan aplikasi. Untuk kebutuhan tersebut, tersedia ekstensi desktop SubOverlay pada direktori induk (`../`), yang menempatkan teks langsung di atas elemen video pada halaman web.
+
+## Menjalankan Secara Lokal
 
 ```bash
 cd sublive
 python -m http.server 8765
 ```
 
-Lalu buka `http://localhost:8765`. Butuh HTTP (bukan `file://`) karena service worker dan ES module worker.
+Buka `http://localhost:8765`. Protokol HTTP diperlukan karena service worker dan ES module worker tidak dapat dijalankan dari skema `file://`.
 
-## Deploy
+## Deployment
 
-Static site, tanpa build step. GitHub Pages dari branch `main` folder root. File yang diperlukan:
+Situs statis tanpa tahap kompilasi. Dapat dipublikasikan ke GitHub Pages dari cabang `main` pada direktori akar. Berkas yang diperlukan:
 
 ```
-index.html   app.js   worker.js   sw.js   manifest.webmanifest   icon.svg
+index.html
+app.js
+worker.js
+sw.js
+manifest.webmanifest
+icon.svg
 ```
 
-## Arsitektur
+Tidak diperlukan variabel lingkungan, konfigurasi rahasia, maupun layanan tambahan. Bobot model tidak disertakan dalam repositori; berkas tersebut diambil dari CDN pada saat runtime.
 
-- `app.js` — UI, capture audio (file/tab), buffer 8 detik, sinkron subtitle, fullscreen, ekspor SRT
-- `worker.js` — module worker, memuat model & menjalankan Whisper (`automatic-speech-recognition`), kirim chunk ber-timestamp ke UI
-- `sw.js` — service worker, network-first untuk shell app, cache model ditangani cache HTTP browser
-- `sub.js` (folder induk) — parser SRT/VTT untuk ekstensi overlay desktop
+## Struktur Kode
 
-Model diunduh dari CDN publik Hugging Face. `env.allowLocalModels = false` di worker memaksa fetch CDN, jadi tidak ada file model di repo.
+- **`app.js`** — antarmuka pengguna, penangkapan audio (berkas/tab), buffer delapan detik, sinkronisasi subtitle dengan linimasa, layar penuh, dan ekspor `.srt`.
+- **`worker.js`** — modul Web Worker yang memuat model, menjalankan pipeline `automatic-speech-recognition`, dan mengirim potongan teks beserta cap waktu ke antarmuka. Pemrosesan berlangsung di luar thread utama agar antarmuka tetap responsif.
+- **`sw.js`** — service worker dengan strategi network-first untuk berkas aplikasi. Cache bobot model dikelola oleh cache HTTP browser.
+- **`manifest.webmanifest`** dan **`icon.svg`** — mendefinisikan aplikasi sebagai PWA yang dapat dipasang.
+- **`sub.js`** (direktori induk) — parser berkas SRT dan VTT untuk ekstensi SubOverlay pada desktop.
+
+Pada `worker.js`, `env.allowLocalModels = false` menginstruksikan transformers.js untuk mengambil model dari CDN publik. Dengan demikian, tidak ada berkas model yang perlu disimpan dalam repositori.
 
 ## Kredit
 
-Model: [OpenAI Whisper](https://github.com/openai/whisper) lewat [transformers.js](https://huggingface.co/docs/transformers.js). Library dari jsdelivr, model dari Hugging Face CDN — keduanya gratis tanpa autentikasi.
+Pengenalan suara menggunakan [OpenAI Whisper](https://github.com/openai/whisper) melalui [transformers.js](https://huggingface.co/docs/transformers.js). Pustaka didistribusikan melalui jsDelivr; bobot model disajikan melalui CDN Hugging Face. Keduanya layanan publik tanpa autentikasi.
